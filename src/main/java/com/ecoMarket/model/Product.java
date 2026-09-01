@@ -35,6 +35,7 @@ public class Product {
     @ManyToOne
     private Category category;
 
+    @ManyToOne
     private Seller seller;
 
     private LocalDateTime createdAt;

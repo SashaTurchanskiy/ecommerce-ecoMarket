@@ -21,6 +21,8 @@ public class CartItems {
     @JsonIgnore
     private Cart cart;
 
+    @ManyToOne
+    @JoinColumn(name = "product_id")
     private Product product;
 
     private String size;

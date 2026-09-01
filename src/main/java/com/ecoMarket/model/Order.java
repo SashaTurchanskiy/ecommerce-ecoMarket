@@ -15,6 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 @EqualsAndHashCode
+@Table(name = "orders")
 public class Order {
 
     @Id
