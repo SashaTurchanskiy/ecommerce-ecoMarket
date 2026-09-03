@@ -30,9 +30,10 @@ public class AppConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/**").authenticated()
                         .requestMatchers("/api/products/*/reviews").permitAll()
-                        .anyRequest().permitAll()
+                        .requestMatchers("/api/auth/**", "/api/users").permitAll()
+                        .requestMatchers("/api/**").authenticated()
+                        .anyRequest().authenticated()
                 ).addFilterBefore(new JwtTokenValidator(), BasicAuthenticationFilter.class);
         return http.build();
     }
@@ -42,7 +43,7 @@ public class AppConfig {
             @Override
             public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
                 CorsConfiguration cfg = new CorsConfiguration();
-                cfg.setAllowedOrigins(Collections.singletonList("*"));
+                cfg.setAllowedOriginPatterns(Collections.singletonList("*"));
                 cfg.setAllowedMethods(Collections.singletonList("*"));
                 cfg.setAllowedHeaders(Collections.singletonList("*"));
                 cfg.setAllowCredentials(true);
