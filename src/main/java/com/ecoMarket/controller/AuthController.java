@@ -1,8 +1,10 @@
 package com.ecoMarket.controller;
 
 import com.ecoMarket.dtos.request.SignupRequest;
+import com.ecoMarket.dtos.response.ApiResponse;
 import com.ecoMarket.dtos.response.AuthResponse;
 import com.ecoMarket.model.User;
+import com.ecoMarket.model.VerificationCode;
 import com.ecoMarket.model.enums.Role;
 import com.ecoMarket.service.AuthService;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +22,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> signup(@RequestBody SignupRequest request){
+    public ResponseEntity<AuthResponse> signup(@RequestBody SignupRequest request) throws Exception {
         String jwt = authService.createUser(request);
 
         AuthResponse authResponse = new AuthResponse();
@@ -30,4 +32,16 @@ public class AuthController {
 
         return ResponseEntity.ok(authResponse);
     }
+    @PostMapping("/sent/login-signup-otp")
+    public ResponseEntity<ApiResponse> sentOtpHandler(@RequestBody VerificationCode request) throws Exception {
+
+        authService.sendLoginOpt(request.getEmail());
+
+        ApiResponse res = new ApiResponse();
+
+        res.setMessage("otp sent successfully");
+
+        return  ResponseEntity.ok(res);
+    }
+
 }
