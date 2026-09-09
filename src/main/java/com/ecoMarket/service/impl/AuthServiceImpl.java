@@ -1,7 +1,9 @@
 package com.ecoMarket.service.impl;
 
+import com.ecoMarket.dtos.request.LoginRequest;
 import com.ecoMarket.dtos.request.SignupRequest;
 import com.ecoMarket.dtos.response.ApiResponse;
+import com.ecoMarket.dtos.response.AuthResponse;
 import com.ecoMarket.model.Cart;
 import com.ecoMarket.model.Seller;
 import com.ecoMarket.model.User;
@@ -11,18 +13,23 @@ import com.ecoMarket.repository.CartRepository;
 import com.ecoMarket.repository.SellerRepository;
 import com.ecoMarket.repository.UserRepository;
 import com.ecoMarket.repository.VerificationCodeRepository;
+import com.ecoMarket.security.CustomUserDetailsService;
 import com.ecoMarket.security.JwtProvider;
 import com.ecoMarket.service.AuthService;
 import com.ecoMarket.utils.OtpUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @Service
@@ -36,6 +43,7 @@ public class AuthServiceImpl implements AuthService {
     private final VerificationCodeRepository verificationCodeRepository;
     private final SellerRepository sellerRepository;
     private final EmailService emailService;
+    private final CustomUserDetailsService customUserDetailsService;
 
 
     @Override
@@ -52,11 +60,9 @@ public class AuthServiceImpl implements AuthService {
 //                    throw new Exception("Seller not found with provided email");
 //                }
 //            } else {
-                User user = userRepository.findByEmail(email);
-                if (user == null) {
-                    throw new Exception("User not exist with provided email");
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new Exception("User not found with provided email"));
 
-            }
         }
         VerificationCode isExist = verificationCodeRepository.findByEmail(email);
         if (isExist != null) {
@@ -84,7 +90,8 @@ public class AuthServiceImpl implements AuthService {
             throw new Exception("Invalid OTP");
         }
 
-        User user = userRepository.findByEmail(request.getEmail());
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElse(null);
 
         if (user == null){
             User createdUser = User.builder()
@@ -107,5 +114,63 @@ public class AuthServiceImpl implements AuthService {
         var authentication = new UsernamePasswordAuthenticationToken(request.getEmail(), null, authorities);
         SecurityContextHolder.getContext().setAuthentication(authentication);
         return jwtProvider.generateToken(authentication);
+    }
+
+    @Override
+    public AuthResponse signIn(LoginRequest request) {
+        if (request == null){
+            throw new IllegalArgumentException("LoginRequest cannot be null");
+        }
+
+        String username = request.getEmail();
+        String otp = request.getOtp();
+
+        Authentication authentication = authentication(username, otp);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        String jwt = jwtProvider.generateToken(authentication);
+
+        AuthResponse authResponse = new AuthResponse();
+        authResponse.setMessage("User signed in successfully");
+        authResponse.setJwt(jwt);
+
+        Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+
+        if (authorities.isEmpty()){
+            authResponse.setRole(Role.ROLE_CUSTOMER);
+        }else {
+            String roleName = authorities.iterator().next().getAuthority();
+            authResponse.setRole(Role.valueOf(roleName));
+        }
+
+        return authResponse;
+    }
+
+    private Authentication authentication(String username, String otp) {
+        if (username == null || username.isBlank()) {
+            throw new BadCredentialsException("Username is required");
+        }
+        if (otp == null || otp.isBlank()) {
+            throw new BadCredentialsException("OTP is required");
+        }
+
+        String normalizedUsername = username.trim();
+        String SELLER_PREFIX = "seller_";
+        if (normalizedUsername.startsWith(SELLER_PREFIX)) {
+            normalizedUsername = normalizedUsername.substring(SELLER_PREFIX.length());
+        }
+
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(username.trim());
+        VerificationCode verificationCode = verificationCodeRepository.findByEmail(normalizedUsername);
+
+        if (verificationCode == null || !verificationCode.getOtp().equals(otp.trim())) {
+            throw new BadCredentialsException("Invalid OTP");
+        }
+
+        return new UsernamePasswordAuthenticationToken(
+                userDetails,
+                null,
+                userDetails.getAuthorities()
+        );
     }
 }

@@ -25,12 +25,12 @@ public class JwtTokenValidator extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String authorizationHeader = request.getHeader("Authorization");
 
-        if (authorizationHeader != null){
-            authorizationHeader = authorizationHeader.substring(7);
+        if (authorizationHeader != null && authorizationHeader.toLowerCase().startsWith("bearer ")){
+            String token = authorizationHeader.substring(7).trim();
             try {
-                SecretKey key = Keys.hmacShaKeyFor(JWT_CONSTANT.SECRET_KEY.getBytes());
+                SecretKey key = Keys.hmacShaKeyFor(JWT_CONSTANT.SECRET_KEY.getBytes(StandardCharsets.UTF_8));
                 Claims claims = Jwts.parser().verifyWith(key).build()
-                        .parseSignedClaims(authorizationHeader).getPayload();
+                        .parseSignedClaims(token).getPayload();
 
                 String email = String.valueOf(claims.get("email"));
                 String authorities = String.valueOf(claims.get("authorities"));

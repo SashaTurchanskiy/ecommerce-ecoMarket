@@ -33,10 +33,11 @@ public class CustomUserDetailsService implements UserDetailsService {
                 return buildUserDetails(seller.getEmail(), seller.getPassword(), seller.getRole());
             }
         } else {
-            User user = userRepository.findByEmail(username);
-            if (user != null) {
+            User user = userRepository.findByEmail(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
+
                 return buildUserDetails(user.getEmail(), user.getPassword(), user.getRoles());
-            }
+
         }
         throw new UsernameNotFoundException("User or seller not found with email: " + username);
     }
@@ -47,7 +48,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         }
 
         // Якщо в майбутньому буде кілька ролей, можна легко розширити
-        List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role.name()));
+        List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role.toString()));
 
         return org.springframework.security.core.userdetails.User
                 .withUsername(email)

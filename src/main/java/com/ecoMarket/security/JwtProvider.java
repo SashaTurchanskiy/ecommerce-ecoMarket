@@ -6,6 +6,7 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
+import java.nio.charset.StandardCharsets;
 
 import javax.crypto.SecretKey;
 import java.util.Collection;
@@ -15,7 +16,7 @@ import java.util.Set;
 
 @Service
 public class JwtProvider {
-    SecretKey key = Keys.hmacShaKeyFor(JWT_CONSTANT.SECRET_KEY.getBytes());
+    SecretKey key = Keys.hmacShaKeyFor(JWT_CONSTANT.SECRET_KEY.getBytes(StandardCharsets.UTF_8));
 
     public String generateToken(Authentication authentication){
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
@@ -31,20 +32,18 @@ public class JwtProvider {
     }
 
     public String getEmailFromJwtToken(String jwt){
+        if (jwt == null) throw new IllegalArgumentException("JWT is null");
+        String token = jwt;
+        if (token.toLowerCase().startsWith("bearer ")) token = token.substring(7);
+        token = token.trim();
+
         Claims claims = Jwts.parser()
                 .verifyWith(key)
                 .build()
-                .parseSignedClaims(jwt)
+                .parseSignedClaims(token)
                 .getPayload();
 
-        String email = String.valueOf(claims.get("email"));
-//        return Jwts.parser()
-//                .verifyWith(key)
-//                .build()
-//                .parseSignedClaims(jwt)
-//                .getPayload()
-//                .get("email", String.class);
-        return String.valueOf(claims.get("email"));
+        return claims.get("email", String.class);
     }
 
     private String populateAuthorities(Collection<? extends GrantedAuthority> authorities) {

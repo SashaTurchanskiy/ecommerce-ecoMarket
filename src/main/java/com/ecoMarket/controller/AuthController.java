@@ -1,5 +1,6 @@
 package com.ecoMarket.controller;
 
+import com.ecoMarket.dtos.request.LoginRequest;
 import com.ecoMarket.dtos.request.SignupRequest;
 import com.ecoMarket.dtos.response.ApiResponse;
 import com.ecoMarket.dtos.response.AuthResponse;
@@ -42,6 +43,14 @@ public class AuthController {
         res.setMessage("otp sent successfully");
 
         return  ResponseEntity.ok(res);
+    }
+    @PostMapping("/signing")
+    public ResponseEntity<AuthResponse> loginHandler(
+            @RequestBody LoginRequest request) throws Exception {
+
+        AuthResponse authResponse = authService.signIn(request);
+
+        return  ResponseEntity.ok(authResponse);
     }
 
 }
