@@ -84,48 +84,95 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public String createUser(SignupRequest request) throws Exception {
+        if (request == null) {
+            throw new IllegalArgumentException("SignupRequest cannot be null");
+        }
 
-        VerificationCode verificationCode = verificationCodeRepository.findByEmail(request.getEmail());
-        if (verificationCode == null || !verificationCode.getOtp().equals(request.getOtp())){
+        String email = request.getEmail();
+        String password = request.getPassword();
+        String otp = request.getOtp();
+
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Email is required");
+        }
+        if (password == null || password.isBlank()) {
+            throw new IllegalArgumentException("Password is required");
+        }
+        if (otp == null || otp.isBlank()) {
+            throw new IllegalArgumentException("OTP is required");
+        }
+
+        VerificationCode verificationCode = verificationCodeRepository.findByEmail(email.trim());
+        if (verificationCode == null || !verificationCode.getOtp().equals(otp.trim())) {
             throw new Exception("Invalid OTP");
         }
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElse(null);
-
-        if (user == null){
-            User createdUser = User.builder()
-                    .email(request.getEmail())
-                    .fullName(request.getFullName())
-                    .roles(Role.ROLE_CUSTOMER)
-                    .password(passwordEncoder.encode(request.getPassword()))
-                    .build();
-
-            userRepository.save(createdUser);
-            Cart cart = Cart.builder()
-                    .user(createdUser)
-                    .build();
-
-            cartRepository.save(cart);
+        if (userRepository.findByEmail(email.trim()).isPresent()) {
+            throw new Exception("User already exists");
         }
-        List<GrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority(Role.ROLE_CUSTOMER.toString()));
 
-        var authentication = new UsernamePasswordAuthenticationToken(request.getEmail(), null, authorities);
+        User user = User.builder()
+                .email(email.trim())
+                .fullName(request.getFullName())
+                .roles(Role.ROLE_CUSTOMER)
+                .password(passwordEncoder.encode(password))
+                .build();
+
+        userRepository.save(user);
+
+        verificationCodeRepository.delete(verificationCode);
+
+        Cart cart = Cart.builder()
+                .user(user)
+                .build();
+        cartRepository.save(cart);
+
+        List<GrantedAuthority> authorities = List.of(
+                new SimpleGrantedAuthority(Role.ROLE_CUSTOMER.toString())
+        );
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                user.getEmail(),
+                null,
+                authorities
+        );
         SecurityContextHolder.getContext().setAuthentication(authentication);
+
         return jwtProvider.generateToken(authentication);
     }
 
     @Override
     public AuthResponse signIn(LoginRequest request) {
-        if (request == null){
+        if (request == null) {
             throw new IllegalArgumentException("LoginRequest cannot be null");
         }
 
-        String username = request.getEmail();
-        String otp = request.getOtp();
+        String email = request.getEmail();
+        String password = request.getPassword();
 
-        Authentication authentication = authentication(username, otp);
+        if (email == null || email.isBlank()) {
+            throw new BadCredentialsException("Email is required");
+        }
+        if (password == null || password.isBlank()) {
+            throw new BadCredentialsException("Password is required");
+        }
+
+        User user = userRepository.findByEmail(email.trim())
+                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new BadCredentialsException("Invalid email or password");
+        }
+
+        List<GrantedAuthority> authorities = List.of(
+                new SimpleGrantedAuthority(user.getRoles().toString())
+        );
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                user.getEmail(),
+                null,
+                authorities
+        );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         String jwt = jwtProvider.generateToken(authentication);
@@ -133,44 +180,8 @@ public class AuthServiceImpl implements AuthService {
         AuthResponse authResponse = new AuthResponse();
         authResponse.setMessage("User signed in successfully");
         authResponse.setJwt(jwt);
-
-        Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
-
-        if (authorities.isEmpty()){
-            authResponse.setRole(Role.ROLE_CUSTOMER);
-        }else {
-            String roleName = authorities.iterator().next().getAuthority();
-            authResponse.setRole(Role.valueOf(roleName));
-        }
+        authResponse.setRole(user.getRoles());
 
         return authResponse;
-    }
-
-    private Authentication authentication(String username, String otp) {
-        if (username == null || username.isBlank()) {
-            throw new BadCredentialsException("Username is required");
-        }
-        if (otp == null || otp.isBlank()) {
-            throw new BadCredentialsException("OTP is required");
-        }
-
-        String normalizedUsername = username.trim();
-        String SELLER_PREFIX = "seller_";
-        if (normalizedUsername.startsWith(SELLER_PREFIX)) {
-            normalizedUsername = normalizedUsername.substring(SELLER_PREFIX.length());
-        }
-
-        UserDetails userDetails = customUserDetailsService.loadUserByUsername(username.trim());
-        VerificationCode verificationCode = verificationCodeRepository.findByEmail(normalizedUsername);
-
-        if (verificationCode == null || !verificationCode.getOtp().equals(otp.trim())) {
-            throw new BadCredentialsException("Invalid OTP");
-        }
-
-        return new UsernamePasswordAuthenticationToken(
-                userDetails,
-                null,
-                userDetails.getAuthorities()
-        );
     }
 }

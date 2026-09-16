@@ -22,8 +22,8 @@ public class AuthController {
 
     private final AuthService authService;
 
-    @PostMapping("/login")
-    public ResponseEntity<AuthResponse> signup(@RequestBody SignupRequest request) throws Exception {
+    @PostMapping("/register")
+    public ResponseEntity<AuthResponse> registerHandler(@RequestBody SignupRequest request) throws Exception {
         String jwt = authService.createUser(request);
 
         AuthResponse authResponse = new AuthResponse();
@@ -33,24 +33,26 @@ public class AuthController {
 
         return ResponseEntity.ok(authResponse);
     }
-    @PostMapping("/sent/login-signup-otp")
-    public ResponseEntity<ApiResponse> sentOtpHandler(@RequestBody VerificationCode request) throws Exception {
 
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> loginHandler(@RequestBody LoginRequest request) {
+        AuthResponse authResponse = authService.signIn(request);
+        return ResponseEntity.ok(authResponse);
+    }
+
+    @PostMapping("/signing")
+    public ResponseEntity<AuthResponse> signingHandler(@RequestBody LoginRequest request) {
+        return loginHandler(request);
+    }
+
+    @PostMapping({"/send-otp", "/sent/login-signup-otp"})
+    public ResponseEntity<ApiResponse> sentOtpHandler(@RequestBody VerificationCode request) throws Exception {
         authService.sendLoginOpt(request.getEmail());
 
         ApiResponse res = new ApiResponse();
-
         res.setMessage("otp sent successfully");
 
-        return  ResponseEntity.ok(res);
-    }
-    @PostMapping("/signing")
-    public ResponseEntity<AuthResponse> loginHandler(
-            @RequestBody LoginRequest request) throws Exception {
-
-        AuthResponse authResponse = authService.signIn(request);
-
-        return  ResponseEntity.ok(authResponse);
+        return ResponseEntity.ok(res);
     }
 
 }
