@@ -24,13 +24,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> registerHandler(@RequestBody SignupRequest request) throws Exception {
-        String jwt = authService.createUser(request);
-
-        AuthResponse authResponse = new AuthResponse();
-        authResponse.setJwt(jwt);
-        authResponse.setMessage("User created successfully");
-        authResponse.setRole(Role.ROLE_CUSTOMER);
-
+        AuthResponse authResponse = authService.createUser(request);
         return ResponseEntity.ok(authResponse);
     }
 

@@ -1,5 +1,6 @@
 package com.ecoMarket.mapper;
 
+import com.ecoMarket.dtos.request.SignupRequest;
 import com.ecoMarket.dtos.request.UserRequest;
 import com.ecoMarket.dtos.response.UserResponse;
 import com.ecoMarket.model.User;
@@ -12,6 +13,10 @@ public interface UserMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "roles", constant = "ROLE_CUSTOMER")
     User toEntity(UserRequest request);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "roles", constant = "ROLE_CUSTOMER")
+    User toEntity(SignupRequest request);
 
     UserResponse toResponse(User user);
 }

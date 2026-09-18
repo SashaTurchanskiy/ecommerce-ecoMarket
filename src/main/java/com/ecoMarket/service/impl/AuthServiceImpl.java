@@ -4,6 +4,8 @@ import com.ecoMarket.dtos.request.LoginRequest;
 import com.ecoMarket.dtos.request.SignupRequest;
 import com.ecoMarket.dtos.response.ApiResponse;
 import com.ecoMarket.dtos.response.AuthResponse;
+import com.ecoMarket.dtos.response.UserResponse;
+import com.ecoMarket.mapper.UserMapper;
 import com.ecoMarket.model.Cart;
 import com.ecoMarket.model.Seller;
 import com.ecoMarket.model.User;
@@ -44,6 +46,7 @@ public class AuthServiceImpl implements AuthService {
     private final SellerRepository sellerRepository;
     private final EmailService emailService;
     private final CustomUserDetailsService customUserDetailsService;
+    private final UserMapper userMapper;
 
 
     @Override
@@ -83,7 +86,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public String createUser(SignupRequest request) throws Exception {
+    public AuthResponse createUser(SignupRequest request) throws Exception {
         if (request == null) {
             throw new IllegalArgumentException("SignupRequest cannot be null");
         }
@@ -111,34 +114,33 @@ public class AuthServiceImpl implements AuthService {
             throw new Exception("User already exists");
         }
 
-        User user = User.builder()
-                .email(email.trim())
-                .fullName(request.getFullName())
-                .roles(Role.ROLE_CUSTOMER)
-                .password(passwordEncoder.encode(password))
-                .build();
+        User user = userMapper.toEntity(request);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
         verificationCodeRepository.delete(verificationCode);
 
         Cart cart = Cart.builder()
-                .user(user)
+                .user(savedUser)
                 .build();
         cartRepository.save(cart);
 
-        List<GrantedAuthority> authorities = List.of(
-                new SimpleGrantedAuthority(Role.ROLE_CUSTOMER.toString())
-        );
-
         Authentication authentication = new UsernamePasswordAuthenticationToken(
-                user.getEmail(),
+                savedUser.getEmail(),
                 null,
-                authorities
-        );
+                buildAuthority(savedUser.getRoles()));
+
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        return jwtProvider.generateToken(authentication);
+        String jwt = jwtProvider.generateToken(authentication);
+
+        AuthResponse authResponse = new AuthResponse();
+        authResponse.setJwt(jwt);
+        authResponse.setMessage("User created successfully");
+        authResponse.setRole(savedUser.getRoles());
+
+        return authResponse;
     }
 
     @Override
@@ -163,15 +165,10 @@ public class AuthServiceImpl implements AuthService {
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new BadCredentialsException("Invalid email or password");
         }
-
-        List<GrantedAuthority> authorities = List.of(
-                new SimpleGrantedAuthority(user.getRoles().toString())
-        );
-
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 user.getEmail(),
                 null,
-                authorities
+                buildAuthority(user.getRoles())
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -183,5 +180,8 @@ public class AuthServiceImpl implements AuthService {
         authResponse.setRole(user.getRoles());
 
         return authResponse;
+    }
+    private List<GrantedAuthority> buildAuthority(Role role){
+        return List.of(new SimpleGrantedAuthority(role.toString()));
     }
 }
