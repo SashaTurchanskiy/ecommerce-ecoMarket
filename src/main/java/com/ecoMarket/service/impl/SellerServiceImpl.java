@@ -4,10 +4,13 @@ import com.ecoMarket.dtos.request.SellerRequest;
 import com.ecoMarket.dtos.response.SellerResponse;
 import com.ecoMarket.mapper.SellerMapper;
 import com.ecoMarket.model.Seller;
+import com.ecoMarket.model.VerificationCode;
 import com.ecoMarket.model.enums.AccountStatus;
 import com.ecoMarket.repository.SellerRepository;
+import com.ecoMarket.repository.VerificationCodeRepository;
 import com.ecoMarket.security.JwtProvider;
 import com.ecoMarket.service.SellerService;
+import com.ecoMarket.utils.OtpUtil;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,6 +26,8 @@ public class SellerServiceImpl implements SellerService {
     private final JwtProvider jwtProvider;
     private final SellerMapper sellerMapper;
     private final PasswordEncoder passwordEncoder;
+    private final VerificationCodeRepository verificationCodeRepository;
+    private final EmailService emailService;
 
     @Override
     public SellerResponse getSellerProfile(String jwt) throws Exception {
@@ -33,11 +38,31 @@ public class SellerServiceImpl implements SellerService {
     @Override
     public SellerResponse createSeller(SellerRequest request) throws Exception {
         Seller sellerFind = sellerRepository.findByEmail(request.getEmail());
-        if (sellerFind == null){
-            throw new Exception("cannot find email");
+        if (sellerFind != null) {
+            throw new Exception("Seller already exists");
         }
+
         Seller seller = sellerMapper.toEntity(request);
-        return sellerMapper.toResponse(sellerRepository.save(seller));
+        seller.setAccountStatus(AccountStatus.PENDING_VERIFICATION);
+        seller.setEmailVerified(false);
+        Seller savedSeller = sellerRepository.save(seller);
+
+        // Генерація OTP
+        String otp = OtpUtil.generateOtp();
+        VerificationCode verificationCode = new VerificationCode();
+        verificationCode.setEmail(savedSeller.getEmail());
+        verificationCode.setOtp(otp);
+        verificationCodeRepository.save(verificationCode);
+
+        // Відправка листа
+        emailService.sendVerificationOtpEmail(
+                savedSeller.getEmail(),
+                otp,
+                "Seller Email Verification",
+                "Your seller verification OTP is " + otp
+        );
+
+        return sellerMapper.toResponse(savedSeller);
     }
 
     @Override
@@ -103,21 +128,23 @@ public class SellerServiceImpl implements SellerService {
 
     @Override
     public SellerResponse verifyEmail(String email, String otp) throws Exception {
-        // 1. Знайти продавця по email
         Seller seller = sellerRepository.findByEmail(email);
-        if (seller == null){
-            throw new Exception("cannot find email");
+        if (seller == null) {
+            throw new Exception("Seller not found");
         }
 
+        VerificationCode verificationCode = verificationCodeRepository.findByEmail(email);
+        if (verificationCode == null || !verificationCode.getOtp().equals(otp.trim())) {
+            throw new Exception("Invalid OTP");
+        }
 
-        // 3. Оновити статус
         seller.setEmailVerified(true);
         seller.setAccountStatus(AccountStatus.ACTIVE);
-
-        // 4. Зберегти зміни
         Seller updatedSeller = sellerRepository.save(seller);
 
-        // 5. Повернути DTO
+        // Видаляємо використаний OTP
+        verificationCodeRepository.delete(verificationCode);
+
         return sellerMapper.toResponse(updatedSeller);
     }
 }

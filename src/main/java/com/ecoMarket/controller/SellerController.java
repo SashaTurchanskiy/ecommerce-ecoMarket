@@ -58,7 +58,7 @@ public class SellerController {
         return new ResponseEntity<>(seller, HttpStatus.OK);
     }
 
-    @PostMapping
+    @PostMapping("/create/seller")
     public ResponseEntity<SellerResponse> createSeller(@RequestBody SellerRequest req) throws Exception, MessagingException {
         SellerResponse savedSeller = sellerService.createSeller(req);
 
