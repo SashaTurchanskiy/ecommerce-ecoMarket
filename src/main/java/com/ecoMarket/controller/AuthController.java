@@ -34,14 +34,14 @@ public class AuthController {
         return ResponseEntity.ok(authResponse);
     }
 
-    @PostMapping("/signing")
-    public ResponseEntity<AuthResponse> signingHandler(@RequestBody LoginRequest request) {
-        return loginHandler(request);
-    }
+//    @PostMapping("/signing")
+//    public ResponseEntity<AuthResponse> signingHandler(@RequestBody LoginRequest request) {
+//        return loginHandler(request);
+//    }
 
     @PostMapping({"/send-otp", "/sent/login-signup-otp"})
     public ResponseEntity<ApiResponse> sentOtpHandler(@RequestBody VerificationCode request) throws Exception {
-        authService.sendLoginOpt(request.getEmail());
+        authService.sendLoginOpt(request.getEmail(), request.getSeller().getRole());
 
         ApiResponse res = new ApiResponse();
         res.setMessage("otp sent successfully");

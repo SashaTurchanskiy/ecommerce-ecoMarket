@@ -20,6 +20,7 @@ import com.ecoMarket.security.JwtProvider;
 import com.ecoMarket.service.AuthService;
 import com.ecoMarket.utils.OtpUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -46,41 +47,43 @@ public class AuthServiceImpl implements AuthService {
     private final SellerRepository sellerRepository;
     private final EmailService emailService;
     private final CustomUserDetailsService customUserDetailsService;
+    private final AuthenticationManager authenticationManager;
     private final UserMapper userMapper;
 
 
     @Override
-    public void sendLoginOpt(String email) throws Exception {
+    public void sendLoginOpt(String email, Role role) throws Exception {
         String SIGNING_PREFIX = "signing_";
 
 
         if (email.startsWith(SIGNING_PREFIX)) {
             email = email.substring(SIGNING_PREFIX.length());
 
-//            if (role.equals(Role.ROLE_SELLER)) {
-//                Seller seller = sellerRepository.findByEmail(email);
-//                if (seller == null) {
-//                    throw new Exception("Seller not found with provided email");
-//                }
-//            } else {
-            User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new Exception("User not found with provided email"));
+            if (role.equals(Role.ROLE_SELLER)) {
+                Seller seller = sellerRepository.findByEmail(email);
+                if (seller == null) {
+                    throw new Exception("Seller not found with provided email");
+                }
+            } else {
+                User user = userRepository.findByEmail(email)
+                        .orElseThrow(() -> new Exception("User not found with provided email"));
 
+            }
+            VerificationCode isExist = verificationCodeRepository.findByEmail(email);
+            if (isExist != null) {
+                verificationCodeRepository.delete(isExist);
+            }
+            String otp = OtpUtil.generateOtp();
+            VerificationCode verificationCode = new VerificationCode();
+            verificationCode.setOtp(otp);
+            verificationCode.setEmail(email);
+            verificationCodeRepository.save(verificationCode);
+
+            String subject = "Login OTP";
+            String text = "Your login/signup OTP is " + otp;
+
+            emailService.sendVerificationOtpEmail(email, otp, subject, text);
         }
-        VerificationCode isExist = verificationCodeRepository.findByEmail(email);
-        if (isExist != null) {
-            verificationCodeRepository.delete(isExist);
-        }
-        String otp = OtpUtil.generateOtp();
-        VerificationCode verificationCode = new VerificationCode();
-        verificationCode.setOtp(otp);
-        verificationCode.setEmail(email);
-        verificationCodeRepository.save(verificationCode);
-
-        String subject = "Login OTP";
-        String text = "Your login/signup OTP is " + otp;
-
-        emailService.sendVerificationOtpEmail(email, otp, subject, text);
 
 
     }
@@ -149,7 +152,7 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("LoginRequest cannot be null");
         }
 
-        String email = request.getEmail();
+        String email = request.getEmail() == null ? null : request.getEmail().trim();
         String password = request.getPassword();
 
         if (email == null || email.isBlank()) {
@@ -159,27 +162,54 @@ public class AuthServiceImpl implements AuthService {
             throw new BadCredentialsException("Password is required");
         }
 
-        User user = userRepository.findByEmail(email.trim())
-                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+        try {
+            String actualEmail = email;
+            boolean isSeller = false;
 
-        if (!passwordEncoder.matches(password, user.getPassword())) {
+            if (email.startsWith("seller_")) {
+                isSeller = true;
+                actualEmail = email.substring("seller_".length());
+            } else {
+                Seller sellerByEmail = sellerRepository.findByEmail(email);
+                if (sellerByEmail != null) {
+                    isSeller = true;
+                    actualEmail = email;
+                }
+            }
+
+            String authUsername = isSeller ? "seller_" + actualEmail : actualEmail;
+
+            UserDetails userDetails = customUserDetailsService.loadUserByUsername(authUsername);
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(authUsername, password, userDetails.getAuthorities())
+            );
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            String jwt = jwtProvider.generateToken(authentication);
+
+            AuthResponse authResponse = new AuthResponse();
+            authResponse.setMessage(isSeller ? "Seller signed in successfully" : "User signed in successfully");
+            authResponse.setJwt(jwt);
+
+            if (isSeller) {
+                Seller seller = sellerRepository.findByEmail(actualEmail);
+                if (seller == null) {
+                    throw new BadCredentialsException("Invalid email or password");
+                }
+                authResponse.setRole(seller.getRole());
+            } else {
+                User user = userRepository.findByEmail(actualEmail)
+                        .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+                authResponse.setRole(user.getRoles());
+            }
+
+            return authResponse;
+        } catch (BadCredentialsException ex) {
+            throw ex;
+        } catch (Exception ex) {
             throw new BadCredentialsException("Invalid email or password");
         }
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
-                user.getEmail(),
-                null,
-                buildAuthority(user.getRoles())
-        );
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        String jwt = jwtProvider.generateToken(authentication);
-
-        AuthResponse authResponse = new AuthResponse();
-        authResponse.setMessage("User signed in successfully");
-        authResponse.setJwt(jwt);
-        authResponse.setRole(user.getRoles());
-
-        return authResponse;
     }
     private List<GrantedAuthority> buildAuthority(Role role){
         return List.of(new SimpleGrantedAuthority(role.toString()));

@@ -31,10 +31,6 @@ public class SellerController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> loginSeller(@RequestBody LoginRequest req) {
-        String otp = req.getOtp();
-        String email = req.getEmail();
-
-        req.setEmail("seller_" + email);
         AuthResponse authResponse = authService.signIn(req);
         return ResponseEntity.ok(authResponse);
 
@@ -78,7 +74,8 @@ public class SellerController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<SellerResponse> getSellerById(@PathVariable Long id) throws Exception {
+    public ResponseEntity<SellerResponse> getSellerById(
+            @PathVariable Long id) throws Exception {
         SellerResponse seller = sellerService.getSellerById(id);
         return new ResponseEntity<>(seller, HttpStatus.OK);
     }
@@ -93,7 +90,8 @@ public class SellerController {
 //        }
 
     @GetMapping("/all")
-    public ResponseEntity<List<SellerResponse>> getAllSellers() {
+    public ResponseEntity<List<SellerResponse>> getAllSellers(
+            @RequestHeader ("Authorization") String jwt) {
         return ResponseEntity.ok(sellerService.getAllSellers());
     }
 

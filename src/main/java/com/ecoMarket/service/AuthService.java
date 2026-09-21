@@ -7,7 +7,7 @@ import com.ecoMarket.model.enums.Role;
 
 public interface AuthService {
 
-    void sendLoginOpt(String email) throws Exception;
+    void sendLoginOpt(String email, Role role) throws Exception;
     AuthResponse createUser(SignupRequest request) throws Exception;
     //add method signIn
     AuthResponse signIn(LoginRequest request);

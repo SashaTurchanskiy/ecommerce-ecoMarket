@@ -21,6 +21,16 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class JwtTokenValidator extends OncePerRequestFilter {
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path.startsWith("/api/auth/")
+                || path.equals("/api/users")
+                || path.equals("/api/sellers/login")
+                || path.startsWith("/api/products/");
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String authorizationHeader = request.getHeader("Authorization");

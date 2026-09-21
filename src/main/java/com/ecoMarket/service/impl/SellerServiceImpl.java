@@ -37,6 +37,16 @@ public class SellerServiceImpl implements SellerService {
 
     @Override
     public SellerResponse createSeller(SellerRequest request) throws Exception {
+        if (request == null) {
+            throw new IllegalArgumentException("Seller request cannot be null");
+        }
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new IllegalArgumentException("Seller email is required");
+        }
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new IllegalArgumentException("Seller password is required");
+        }
+
         Seller sellerFind = sellerRepository.findByEmail(request.getEmail());
         if (sellerFind != null) {
             throw new Exception("Seller already exists");
@@ -45,22 +55,23 @@ public class SellerServiceImpl implements SellerService {
         Seller seller = sellerMapper.toEntity(request);
         seller.setAccountStatus(AccountStatus.PENDING_VERIFICATION);
         seller.setEmailVerified(false);
+        seller.setPassword(passwordEncoder.encode(request.getPassword()));
         Seller savedSeller = sellerRepository.save(seller);
 
-        // Генерація OTP
-        String otp = OtpUtil.generateOtp();
-        VerificationCode verificationCode = new VerificationCode();
-        verificationCode.setEmail(savedSeller.getEmail());
-        verificationCode.setOtp(otp);
-        verificationCodeRepository.save(verificationCode);
+//        // Генерація OTP
+//        String otp = OtpUtil.generateOtp();
+//        VerificationCode verificationCode = new VerificationCode();
+//        verificationCode.setEmail(savedSeller.getEmail());
+//        verificationCode.setOtp(otp);
+//        verificationCodeRepository.save(verificationCode);
 
         // Відправка листа
-        emailService.sendVerificationOtpEmail(
-                savedSeller.getEmail(),
-                otp,
-                "Seller Email Verification",
-                "Your seller verification OTP is " + otp
-        );
+//        emailService.sendVerificationOtpEmail(
+//                savedSeller.getEmail(),
+//                otp,
+//                "Seller Email Verification",
+//                "Your seller verification OTP is " + otp
+//        );
 
         return sellerMapper.toResponse(savedSeller);
     }
