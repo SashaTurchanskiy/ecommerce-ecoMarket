@@ -44,7 +44,7 @@ public class ProductRequest {
     @Builder.Default
     private List<String> images = new ArrayList<>();
 
-    @NotNull
+
     private String categoryId;
 
     @NotNull
