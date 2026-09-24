@@ -34,11 +34,11 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductResponse createProduct(ProductRequest request, Seller seller) throws Exception {
-//        Category category = categoryRepository.findByCategoryId(request.getCategoryId());
-//        if (category == null){
-//            throw new Exception("category not found");
-//        }
-        Product product = productMapper.toEntity(request, seller, null);
+        Category category = categoryRepository.findByCategoryId(request.getCategoryId());
+        if (category == null){
+            throw new Exception("category not found");
+        }
+        Product product = productMapper.toEntity(request, seller, category);
 
         int discount = calculateDiscountPercentage(product.getMrpPrice(), product.getSellingPrice());
         product.setDiscountPercent(discount);
