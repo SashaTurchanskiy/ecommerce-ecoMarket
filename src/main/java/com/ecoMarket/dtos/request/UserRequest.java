@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class UserRequest {
 
+    private Long id;
     private String email;
     private String fullName;
     private String mobile;
