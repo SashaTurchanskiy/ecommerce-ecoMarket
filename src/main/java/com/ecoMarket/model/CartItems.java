@@ -19,10 +19,14 @@ public class CartItems {
 
     @ManyToOne
     @JsonIgnore
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
     private Cart cart;
 
     @ManyToOne
     @JoinColumn(name = "product_id")
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
     private Product product;
 
     private String size;

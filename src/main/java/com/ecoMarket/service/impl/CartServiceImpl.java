@@ -1,7 +1,6 @@
 package com.ecoMarket.service.impl;
 
 import com.ecoMarket.dtos.request.CartItemsRequest;
-import com.ecoMarket.dtos.request.UserRequest;
 import com.ecoMarket.dtos.response.CartItemsResponse;
 import com.ecoMarket.dtos.response.CartResponse;
 import com.ecoMarket.mapper.CartItemsMapper;
@@ -33,13 +32,13 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public CartItemsResponse addCartItem(
-            UserRequest userRequest,
+            Long userId,
             CartItemsRequest cartItemsRequest
     ) {
-        validateUserRequest(userRequest);
+        validateUserId(userId);
         validateCartItemsRequest(cartItemsRequest);
 
-        User user = userRepository.findById(userRequest.getId())
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         Product product = productRepository.findById(cartItemsRequest.getProductId())
@@ -80,10 +79,10 @@ public class CartServiceImpl implements CartService {
 
     @Override
     @Transactional
-    public CartResponse findUserCart(UserRequest request) {
-        validateUserRequest(request);
+    public CartResponse findUserCart(Long userId) {
+        validateUserId(userId);
 
-        User user = userRepository.findById(request.getId())
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         Cart cart = getOrCreateCart(user);
@@ -123,8 +122,8 @@ public class CartServiceImpl implements CartService {
         cart.setDiscount(calculateDiscountPercentage(totalMrpPrice, totalSellingPrice));
     }
 
-    private void validateUserRequest(UserRequest request) {
-        if (request == null || request.getId() == null) {
+    private void validateUserId(Long userId) {
+        if (userId == null) {
             throw new IllegalArgumentException("User id is required");
         }
     }
