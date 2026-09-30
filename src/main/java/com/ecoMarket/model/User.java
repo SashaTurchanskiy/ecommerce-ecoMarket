@@ -29,6 +29,7 @@ public class User {
     private Role roles = Role.ROLE_CUSTOMER;
 
     @OneToMany
+    @EqualsAndHashCode.Exclude
     private Set<Address> addresses = new HashSet<>();
 
     @ManyToMany

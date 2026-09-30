@@ -28,5 +28,6 @@ public class Address {
     private String mobile;
 
     @ManyToOne
+    @EqualsAndHashCode.Exclude
     private User users;
 }
