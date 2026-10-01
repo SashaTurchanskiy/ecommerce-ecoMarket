@@ -17,6 +17,8 @@ public interface CartMapper {
     @Mapping(target = "discount", ignore = true)
     Cart toEntity(CartRequest request);
 
+    CartRequest toRequest(CartResponse response);
+
     @Mapping(target = "userId", source = "user.id")
     CartResponse toResponse(Cart cart);
 }

@@ -17,6 +17,8 @@ public interface CartItemsMapper {
     @Mapping(target = "userId", ignore = true)
     CartItems toEntity(CartItemsRequest request);
 
+    CartItemsRequest toRequest(CartItemsResponse response);
+
     @Mapping(target = "cartId", source = "cart.id")
     @Mapping(target = "productId", source = "product.id")
     CartItemsResponse toResponse(CartItems cartItems);

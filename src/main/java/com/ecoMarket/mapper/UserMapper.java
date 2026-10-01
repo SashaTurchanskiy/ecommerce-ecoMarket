@@ -18,5 +18,8 @@ public interface UserMapper {
     @Mapping(target = "roles", constant = "ROLE_CUSTOMER")
     User toEntity(SignupRequest request);
 
+    @Mapping(target = "password", ignore = true)
+    UserRequest toRequest(UserResponse response);
+
     UserResponse toResponse(User user);
 }
