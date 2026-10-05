@@ -30,7 +30,7 @@ public class SellerServiceImpl implements SellerService {
     private final EmailService emailService;
 
     @Override
-    public SellerResponse getSellerProfile(String jwt) throws Exception {
+    public Seller getSellerProfile(String jwt) throws Exception {
         String email = jwtProvider.getEmailFromJwtToken(jwt);
         return this.getSellerByEmail(email);
     }
@@ -84,12 +84,13 @@ public class SellerServiceImpl implements SellerService {
     }
 
     @Override
-    public SellerResponse getSellerByEmail(String email) throws Exception {
+    public Seller getSellerByEmail(String email) throws Exception {
         Seller seller = sellerRepository.findByEmail(email);
         if (seller == null){
             throw new Exception("cannot find seller with email");
         }
-        return sellerMapper.toResponse(seller);
+        //return sellerMapper.toResponse(seller);
+        return seller;
     }
 
     @Override

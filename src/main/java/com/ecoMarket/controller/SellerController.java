@@ -4,9 +4,12 @@ import com.ecoMarket.dtos.request.LoginRequest;
 import com.ecoMarket.dtos.request.SellerRequest;
 import com.ecoMarket.dtos.response.AuthResponse;
 import com.ecoMarket.dtos.response.SellerResponse;
+import com.ecoMarket.model.Seller;
+import com.ecoMarket.model.SellerReport;
 import com.ecoMarket.model.VerificationCode;
 import com.ecoMarket.repository.VerificationCodeRepository;
 import com.ecoMarket.service.AuthService;
+import com.ecoMarket.service.SellerReportService;
 import com.ecoMarket.service.SellerService;
 import com.ecoMarket.service.impl.EmailService;
 import com.ecoMarket.utils.OtpUtil;
@@ -27,6 +30,7 @@ public class SellerController {
     private final AuthService authService;
     private final VerificationCodeRepository verificationCodeRepository;
     private final EmailService emailService;
+    private final SellerReportService sellerReportService;
 
 
     @PostMapping("/login")
@@ -36,7 +40,7 @@ public class SellerController {
 
     }
     @GetMapping("/profile")
-    public ResponseEntity<SellerResponse> getByProfile(@RequestHeader("Authorization") String jwt) throws Exception {
+    public ResponseEntity<Seller> getByProfile(@RequestHeader("Authorization") String jwt) throws Exception {
         return ResponseEntity.ok(sellerService.getSellerProfile(jwt));
     }
     @PatchMapping("/verify/{otp}")
@@ -79,15 +83,16 @@ public class SellerController {
         SellerResponse seller = sellerService.getSellerById(id);
         return new ResponseEntity<>(seller, HttpStatus.OK);
     }
-//    @GetMapping("/report")
-//    public ResponseEntity<SellerReport> getSellerReport(
-//            @RequestHeader("Authorization") String jwt) throws Exception {
-//        {
-//            Seller seller = sellerService.getSellerProfile(jwt);
-//            SellerReport report = sellerReportService.getSellerReport(seller);
-//
-//            return new ResponseEntity<>(report, HttpStatus.OK);
-//        }
+    @GetMapping("/report")
+    public ResponseEntity<SellerReport> getSellerReport(
+            @RequestHeader("Authorization") String jwt) throws Exception {
+        {
+            Seller seller = sellerService.getSellerProfile(jwt);
+            SellerReport report = sellerReportService.getSellerReport(seller);
+
+            return new ResponseEntity<>(report, HttpStatus.OK);
+        }
+    }
 
     @GetMapping("/all")
     public ResponseEntity<List<SellerResponse>> getAllSellers(
@@ -100,7 +105,7 @@ public class SellerController {
             @RequestHeader ("Authorization") String jwt,
             @RequestBody SellerRequest req) throws Exception {
 
-        SellerResponse profile = sellerService.getSellerProfile(jwt);
+        Seller profile = sellerService.getSellerProfile(jwt);
         SellerResponse updatedSeller = sellerService.updateSellerProfile(profile.getId(), req);
         return ResponseEntity.ok(updatedSeller);
     }

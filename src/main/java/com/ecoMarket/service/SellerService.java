@@ -8,10 +8,10 @@ import java.util.List;
 
 public interface SellerService {
 
-    SellerResponse getSellerProfile(String jwt) throws Exception;
+    Seller getSellerProfile(String jwt) throws Exception;
     SellerResponse createSeller(SellerRequest request) throws Exception;
     SellerResponse getSellerById(Long id) throws Exception;
-    SellerResponse getSellerByEmail(String email) throws Exception;
+    Seller getSellerByEmail(String email) throws Exception;
     List<SellerResponse> getAllSellers();
     SellerResponse updateSellerProfile(Long id, SellerRequest request);
     void deleteSeller(Long id) throws Exception;
