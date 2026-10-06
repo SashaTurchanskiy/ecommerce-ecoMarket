@@ -10,9 +10,9 @@ public interface PaymentService {
 
     PaymentOrder createOrder(User user, Set<Order> orders);
 
-    PaymentOrder getPaymentOrderById(Long orderId);
+    PaymentOrder getPaymentOrderById(Long orderId) throws Exception;
 
-    PaymentOrder getPaymentOrderByPaymentId(String orderId);
+    PaymentOrder getPaymentOrderByPaymentId(String orderId) throws Exception;
 
     Boolean proceedPaymentOrder(PaymentOrder paymentOrder, String paymentId, String paymentLinkId);
 
