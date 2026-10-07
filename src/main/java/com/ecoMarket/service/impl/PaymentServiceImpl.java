@@ -3,10 +3,16 @@ package com.ecoMarket.service.impl;
 import com.ecoMarket.model.Order;
 import com.ecoMarket.model.PaymentOrder;
 import com.ecoMarket.model.User;
+import com.ecoMarket.model.enums.PaymentOrderStatus;
+import com.ecoMarket.model.enums.PaymentStatus;
 import com.ecoMarket.repository.OrderRepository;
 import com.ecoMarket.repository.PaymentOrderRepository;
 import com.ecoMarket.service.PaymentService;
+import com.stripe.Stripe;
+import com.stripe.exception.StripeException;
+import com.stripe.model.PaymentIntent;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
@@ -17,6 +23,12 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentOrderRepository paymentOrderRepository;
     private final OrderRepository orderRepository;
+
+    @Value("${stripe.api.key}")
+    private String apiKey;
+
+    @Value("${stripe.secret.key}")
+    private String stripeSecretKey;
 
     @Override
     public PaymentOrder createOrder(User user, Set<Order> orders) {
@@ -47,8 +59,29 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public Boolean proceedPaymentOrder(PaymentOrder paymentOrder, String paymentId, String paymentLinkId) {
-        return null;
+    public Boolean proceedPaymentOrder(PaymentOrder paymentOrder, String paymentId, String paymentLinkId) throws StripeException {
+        if (paymentOrder.getStatus().equals(PaymentOrderStatus.PENDING)){
+            Stripe.apiKey = stripeSecretKey;
+
+            PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentId);
+
+            if ("succeded".equals(paymentIntent.getStatus())){
+                Set<Order> orders = paymentOrder.getOrders();
+                for (Order order : orders){
+                    order.setPaymentStatus(PaymentStatus.COMPLETED);
+                    orderRepository.save(order);
+                }
+                paymentOrder.setStatus(PaymentOrderStatus.SUCCESS);
+                paymentOrderRepository.save(paymentOrder);
+                return true;
+            } else {
+                paymentOrder.setStatus(PaymentOrderStatus.FAILED);
+                paymentOrderRepository.save(paymentOrder);
+                return false;
+            }
+
+        }
+        return false;
     }
 
     @Override
