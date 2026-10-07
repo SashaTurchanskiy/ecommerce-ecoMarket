@@ -79,17 +79,18 @@ public class CartServiceImpl implements CartService {
 
     @Override
     @Transactional
-    public CartResponse findUserCart(Long userId) {
-        validateUserId(userId);
+    public Cart findUserCart(User user) {
+        validateUserId(user.getId());
 
-        User user = userRepository.findById(userId)
+        User foundUser = userRepository.findById(user.getId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         Cart cart = getOrCreateCart(user);
         recalculateCartTotals(cart);
         cartRepository.save(cart);
 
-        return cartMapper.toResponse(cart);
+        //return cartMapper.toResponse(cart);
+        return cart;
     }
 
     private Cart getOrCreateCart(User user) {

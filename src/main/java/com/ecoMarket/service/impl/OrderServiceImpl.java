@@ -7,12 +7,7 @@ import com.ecoMarket.dtos.response.OrderItemResponse;
 import com.ecoMarket.dtos.response.OrderResponse;
 import com.ecoMarket.mapper.OrderItemMapper;
 import com.ecoMarket.mapper.OrderMapper;
-import com.ecoMarket.model.Address;
-import com.ecoMarket.model.Order;
-import com.ecoMarket.model.OrderItem;
-import com.ecoMarket.model.PaymentDetails;
-import com.ecoMarket.model.Product;
-import com.ecoMarket.model.User;
+import com.ecoMarket.model.*;
 import com.ecoMarket.model.enums.OrderStatus;
 import com.ecoMarket.model.enums.PaymentStatus;
 import com.ecoMarket.repository.AddressRepository;
@@ -49,105 +44,55 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public Set<OrderResponse> createOrder(UserRequest request, Address shippingAddress, CartRequest cartRequest) {
-        if (request == null || request.getId() == null) {
-            throw new IllegalArgumentException("User id is required");
+    public Set<Order> createOrder(User user, Address shippingAddress, Cart cart) {
+        if (!user.getAddresses().contains(shippingAddress)){
+            user.getAddresses().add(shippingAddress);
         }
-        if (shippingAddress == null) {
-            throw new IllegalArgumentException("Shipping address is required");
-        }
-        if (cartRequest == null || cartRequest.getCartItems() == null
-                || cartRequest.getCartItems().isEmpty()) {
-            throw new IllegalArgumentException("Cart must contain at least one item");
-        }
+        Address address = addressRepository.save(shippingAddress);
 
-        User user = userRepository.findById(request.getId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found with id " + request.getId()));
+        Map<Long, List<CartItems>> itemsBySeller = cart.getCartItems().stream()
+                .collect(Collectors.groupingBy(item -> item.getProduct()
+                        .getSeller().getId()));
 
-        if (user.getAddresses() == null) {
-            user.setAddresses(new HashSet<>());
-        }
-        shippingAddress.setUsers(user);
-        Address savedAddress = addressRepository.save(shippingAddress);
-        boolean addressAlreadyAttached = user.getAddresses().stream()
-                .anyMatch(address -> savedAddress.getId() != null
-                        && savedAddress.getId().equals(address.getId()));
-        if (!addressAlreadyAttached) {
-            user.getAddresses().add(savedAddress);
-        }
-        userRepository.save(user);
+        Set<Order> orders = new HashSet<>();
 
-        List<CartItemsRequest> cartItems = new ArrayList<>(cartRequest.getCartItems());
-        Map<Long, Integer> quantityByProduct = new HashMap<>();
-        for (CartItemsRequest cartItem : cartItems) {
-            if (cartItem == null || cartItem.getProductId() == null) {
-                throw new IllegalArgumentException("Every cart item must have a product id");
+        for (Map.Entry<Long, List<CartItems>> entry : itemsBySeller.entrySet()) {
+            Long sellerId = entry.getKey();
+
+            List<CartItems> items = entry.getValue();
+
+            int totalOrderPrice = items.stream().mapToInt(CartItems::getSellingPrice).sum();
+            int totalItem = items.stream().mapToInt(CartItems::getQuantity).sum();
+
+            Order createdOrder = new Order();
+            createdOrder.setUser(user);
+            createdOrder.setSellerId(sellerId);
+            createdOrder.setTotalMrpPrice(totalOrderPrice);
+            createdOrder.setTotalSellingPrice(totalOrderPrice);
+            createdOrder.setTotalItem(totalItem);
+            createdOrder.setShippingAddress(address);
+            createdOrder.setOrderStatus(OrderStatus.PENDING);
+            createdOrder.getPaymentDetails().setStatus(PaymentStatus.PENDING);
+
+            Order savedOrder = orderRepository.save(createdOrder);
+            orders.add(savedOrder);
+
+            List<OrderItem> orderItems = new ArrayList<>();
+
+            for (CartItems item : items){
+                OrderItem orderItem = new OrderItem();
+                orderItem.setOrder(savedOrder);
+                orderItem.setMrpPrice(item.getMrpPrice());
+                orderItem.setProduct(item.getProduct());
+                orderItem.setQuantity(item.getQuantity());
+                orderItem.setSize(item.getSize());
+                orderItem.setUserId(item.getUserId());
+                orderItem.setSellingPrice(item.getSellingPrice());
+
+                savedOrder.getOrderItems().add(orderItem);
+                OrderItem savedOrderItem = orderItemRepository.save(orderItem);
+                orderItems.add(savedOrderItem);
             }
-            if (cartItem.getQuantity() == null || cartItem.getQuantity() <= 0) {
-                throw new IllegalArgumentException("Cart item quantity must be greater than zero");
-            }
-            quantityByProduct.merge(cartItem.getProductId(), cartItem.getQuantity(), Math::addExact);
-        }
-
-        Map<Long, Product> productsById = productRepository.findAllById(cartItems.stream()
-                        .map(CartItemsRequest::getProductId)
-                        .collect(Collectors.toSet()))
-                .stream()
-                .collect(Collectors.toMap(Product::getId, product -> product));
-
-        Map<Long, List<OrderItem>> itemsBySeller = new HashMap<>();
-        for (CartItemsRequest cartItem : cartItems) {
-            Product product = productsById.get(cartItem.getProductId());
-            if (product == null) {
-                throw new IllegalArgumentException("Product not found with id " + cartItem.getProductId());
-            }
-            if (product.getSeller() == null || product.getSeller().getId() == null) {
-                throw new IllegalArgumentException("Product has no seller: " + product.getId());
-            }
-            if (quantityByProduct.get(product.getId()) > product.getQuantity()) {
-                throw new IllegalArgumentException("Not enough product quantity available: " + product.getId());
-            }
-
-            OrderItem item = OrderItem.builder()
-                    .product(product)
-                    .size(cartItem.getSize())
-                    .quantity(cartItem.getQuantity())
-                    .mrpPrice(Math.multiplyExact(product.getMrpPrice(), cartItem.getQuantity()))
-                    .sellingPrice(Math.multiplyExact(product.getSellingPrice(), cartItem.getQuantity()))
-                    .userId(user.getId())
-                    .build();
-            itemsBySeller.computeIfAbsent(product.getSeller().getId(), ignored -> new ArrayList<>()).add(item);
-        }
-
-        Set<OrderResponse> orders = Collections.newSetFromMap(new IdentityHashMap<>());
-        for (Map.Entry<Long, List<OrderItem>> entry : itemsBySeller.entrySet()) {
-            List<OrderItem> items = entry.getValue();
-            int totalMrpPrice = items.stream().mapToInt(OrderItem::getMrpPrice).reduce(0, Math::addExact);
-            int totalSellingPrice = items.stream().mapToInt(OrderItem::getSellingPrice).reduce(0, Math::addExact);
-            int totalItems = items.stream().mapToInt(OrderItem::getQuantity).reduce(0, Math::addExact);
-
-            Order order = new Order();
-            order.setUser(user);
-            order.setSellerId(entry.getKey());
-            order.setShippingAddress(savedAddress);
-            order.setOrderStatus(OrderStatus.PENDING);
-            order.setPaymentStatus(PaymentStatus.PENDING);
-            PaymentDetails paymentDetails = new PaymentDetails();
-            paymentDetails.setStatus(PaymentStatus.PENDING);
-            order.setPaymentDetails(paymentDetails);
-            order.setTotalMrpPrice(totalMrpPrice);
-            order.setTotalSellingPrice(totalSellingPrice);
-            order.setTotalItem(totalItems);
-            order.setDiscount(totalMrpPrice == 0
-                    ? 0
-                    : (int) (((double) (totalMrpPrice - totalSellingPrice) / totalMrpPrice) * 100));
-
-            for (OrderItem item : items) {
-                item.setOrder(order);
-                order.getOrderItems().add(item);
-            }
-
-            orders.add(orderMapper.toResponse(orderRepository.save(order)));
         }
         return orders;
     }
@@ -178,16 +123,16 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public OrderResponse cancelOrder(Long orderId, UserRequest request) throws Exception {
+    public Order cancelOrder(Long orderId, User user) throws Exception {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new Exception("Order not found with id " + orderId));
 
-        if (!request.getId().equals(order.getUser().getId())){
+        if (!user.getId().equals(order.getUser().getId())){
             throw new Exception("You dont have permission to cancel this order");
         }
         order.setOrderStatus(OrderStatus.CANCELLED);
         //Order savedOrder = orderRepository.save(order);
-        return orderMapper.toResponse(orderRepository.save(order));
+        return orderRepository.save(order);
     }
 
     @Override

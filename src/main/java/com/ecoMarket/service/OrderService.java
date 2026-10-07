@@ -6,7 +6,9 @@ import com.ecoMarket.dtos.response.CartResponse;
 import com.ecoMarket.dtos.response.OrderItemResponse;
 import com.ecoMarket.dtos.response.OrderResponse;
 import com.ecoMarket.model.Address;
+import com.ecoMarket.model.Cart;
 import com.ecoMarket.model.Order;
+import com.ecoMarket.model.User;
 import com.ecoMarket.model.enums.OrderStatus;
 
 import java.util.List;
@@ -14,7 +16,7 @@ import java.util.Set;
 
 public interface OrderService {
 
-    Set<OrderResponse> createOrder(UserRequest request, Address shippingAddress, CartRequest cartRequest);
+    Set<Order> createOrder(User user, Address shippingAddress, Cart cart);
 
     OrderResponse findByOrderId(Long id) throws Exception;
 
@@ -24,7 +26,7 @@ public interface OrderService {
 
     OrderResponse updateOrderStatus(Long orderId, OrderStatus orderStatus) throws Exception;
 
-    OrderResponse cancelOrder(Long orderId, UserRequest request) throws Exception;
+    Order cancelOrder(Long orderId, User user) throws Exception;
 
     OrderItemResponse getOrderById(Long id) throws Exception;
 

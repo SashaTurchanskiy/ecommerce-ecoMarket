@@ -18,12 +18,12 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
 
     @Override
-    public UserResponse findUserByJwtToken(String jwt) throws Exception {
+    public User findUserByJwtToken(String jwt) throws Exception {
         try {
             String email = jwtProvider.getEmailFromJwtToken(jwt);
-            User user = userRepository.findByEmail(email)
+            return userRepository.findByEmail(email)
                     .orElseThrow(() -> new Exception("User not found with email: " + email));
-            return userMapper.toResponse(user);
+            //return userMapper.toResponse(user);
         } catch (Exception e) {
             throw new Exception("Error finding user by JWT token: " + e.getMessage());
         }
