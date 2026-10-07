@@ -17,5 +17,5 @@ public interface PaymentService {
 
     Boolean proceedPaymentOrder(PaymentOrder paymentOrder, String paymentId, String paymentLinkId) throws StripeException;
 
-    String createStripePaymentLink(User user, Long amount, Long orderId);
+    String createStripePaymentLink(User user, Long amount, Long orderId) throws StripeException;
 }
