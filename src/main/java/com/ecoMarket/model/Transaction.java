@@ -18,6 +18,9 @@ public class Transaction {
     private Long id;
 
     @ManyToOne
+    private User customer;
+
+    @ManyToOne
     private User user;
 
     @OneToOne

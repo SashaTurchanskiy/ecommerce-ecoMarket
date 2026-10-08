@@ -77,10 +77,10 @@ public class SellerServiceImpl implements SellerService {
     }
 
     @Override
-    public SellerResponse getSellerById(Long id) throws Exception {
-        Seller seller = sellerRepository.findById(id)
+    public Seller getSellerById(Long id) throws Exception {
+        return sellerRepository.findById(id)
                 .orElseThrow(()-> new Exception("cannot find seller with id"));
-        return sellerMapper.toResponse(seller);
+
     }
 
     @Override

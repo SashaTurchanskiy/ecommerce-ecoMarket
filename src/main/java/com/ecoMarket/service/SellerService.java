@@ -10,7 +10,7 @@ public interface SellerService {
 
     Seller getSellerProfile(String jwt) throws Exception;
     SellerResponse createSeller(SellerRequest request) throws Exception;
-    SellerResponse getSellerById(Long id) throws Exception;
+    Seller getSellerById(Long id) throws Exception;
     Seller getSellerByEmail(String email) throws Exception;
     List<SellerResponse> getAllSellers();
     SellerResponse updateSellerProfile(Long id, SellerRequest request);
