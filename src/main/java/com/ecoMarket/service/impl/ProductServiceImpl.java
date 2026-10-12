@@ -47,10 +47,11 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductResponse findProductById(Long productId) throws Exception {
-        Product product = productRepository.findById(productId)
+    public Product findProductById(Long productId) throws Exception {
+        return productRepository.findById(productId)
                 .orElseThrow(()-> new Exception("cannot find product with " + productId));
-        return productMapper.toResponse(product);
+        //return productMapper.toResponse(product);
+
     }
 
     @Override

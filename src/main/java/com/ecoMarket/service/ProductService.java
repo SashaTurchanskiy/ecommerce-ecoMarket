@@ -12,7 +12,7 @@ import java.util.List;
 public interface ProductService {
 
     ProductResponse createProduct(ProductRequest request, Seller seller) throws Exception;
-    ProductResponse findProductById(Long productId) throws Exception;
+    Product findProductById(Long productId) throws Exception;
     List<ProductResponse> searchProduct(String query);
     ProductResponse updateProduct(Long productId, ProductRequest request);
     Page<ProductResponse> getAllProduct(
