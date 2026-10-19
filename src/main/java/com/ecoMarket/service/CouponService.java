@@ -10,7 +10,7 @@ public interface CouponService {
 
     Cart applyCoupon(String couponCode, double orderValue, User user) throws Exception;
 
-    Cart removeCoupon(String code, User user);
+    Cart removeCoupon(String code, User user) throws Exception;
 
     Coupon findCouponById(Long id) throws Exception;
 

@@ -8,6 +8,7 @@ import com.ecoMarket.repository.CouponRepository;
 import com.ecoMarket.repository.UserRepository;
 import com.ecoMarket.service.CouponService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -51,8 +52,19 @@ public class CouponServiceImpl implements CouponService {
     }
 
     @Override
-    public Cart removeCoupon(String code, User user) {
-        return null;
+    public Cart removeCoupon(String code, User user) throws Exception {
+        Coupon coupon = couponRepository.findByCode(code);
+
+        if (coupon == null){
+            throw new Exception("Coupon not found with code: " + code);
+        }
+
+        Cart cart = cartRepository.findByUserId(user.getId());
+        double discountPrice = (cart.getTotalSellingPrice() * coupon.getDiscountPercentage()) / 100;
+
+        cart.setTotalSellingPrice(cart.getTotalSellingPrice() + discountPrice);
+        cart.setCouponCode(null);
+        return cartRepository.save(cart);
     }
 
     @Override
@@ -62,8 +74,10 @@ public class CouponServiceImpl implements CouponService {
     }
 
     @Override
+    @PreAuthorize("hasRole('ADMIN')")
     public Coupon createCoupon(Coupon coupon) {
-        return null;
+        return couponRepository.save(coupon);
+
     }
 
     @Override
@@ -72,6 +86,7 @@ public class CouponServiceImpl implements CouponService {
     }
 
     @Override
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteCoupon(Long id) throws Exception {
         Coupon coupon = couponRepository.findById(id)
                 .orElseThrow(()-> new Exception("Coupon not found with id: " + id));
