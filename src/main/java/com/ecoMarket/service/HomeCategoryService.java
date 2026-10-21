@@ -12,7 +12,7 @@ public interface HomeCategoryService {
 
     List<HomeCategory> createCategories(List<HomeCategory> homeCategory);
 
-    HomeCategory updateHomeCategory(Long id, HomeCategory homeCategory);
+    HomeCategory updateHomeCategory(Long id, HomeCategory homeCategory) throws Exception;
 
     List<HomeCategory> getAllHomeCategories();
 }

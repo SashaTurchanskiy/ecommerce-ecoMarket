@@ -16,17 +16,28 @@ public class HomeCategoryServiceImpl implements HomeCategoryService {
 
     @Override
     public HomeCategory createHomeCategory(HomeCategory homeCategory) {
-        return null;
+        return homeCategoryRepository.save(homeCategory);
     }
 
     @Override
     public List<HomeCategory> createCategories(List<HomeCategory> homeCategory) {
-        return List.of();
+        if (homeCategoryRepository.findAll().isEmpty()){
+            return homeCategoryRepository.saveAll(homeCategory);
+        }
+        return homeCategoryRepository.findAll();
     }
 
     @Override
-    public HomeCategory updateHomeCategory(Long id, HomeCategory homeCategory) {
-        return null;
+    public HomeCategory updateHomeCategory(Long id, HomeCategory homeCategory) throws Exception {
+        HomeCategory existingCategory = homeCategoryRepository.findById(id)
+                .orElseThrow(()-> new Exception("Category not found"));
+        if (homeCategory.getName()!=null){
+            existingCategory.setImage(homeCategory.getImage());
+        }
+        if (homeCategory.getCategoryId()!=null){
+            existingCategory.setCategoryId(homeCategory.getCategoryId());
+        }
+        return homeCategoryRepository.save(existingCategory);
     }
 
     @Override
