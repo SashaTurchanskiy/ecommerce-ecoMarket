@@ -3,6 +3,7 @@ package com.ecoMarket.service;
 import com.ecoMarket.dtos.request.SellerRequest;
 import com.ecoMarket.dtos.response.SellerResponse;
 import com.ecoMarket.model.Seller;
+import com.ecoMarket.model.enums.AccountStatus;
 
 import java.util.List;
 
@@ -16,4 +17,6 @@ public interface SellerService {
     SellerResponse updateSellerProfile(Long id, SellerRequest request);
     void deleteSeller(Long id) throws Exception;
     SellerResponse verifyEmail(String email, String otp) throws Exception;
+
+    Seller updateSellerAccountStatus(Long sellerId, AccountStatus status) throws Exception;
 }
