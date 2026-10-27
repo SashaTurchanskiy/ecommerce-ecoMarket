@@ -1,6 +1,7 @@
 package com.ecoMarket.controller;
 
 import com.ecoMarket.dtos.response.ProductResponse;
+import com.ecoMarket.model.Product;
 import com.ecoMarket.service.ProductService;
 import lombok.RequiredArgsConstructor;
 
@@ -20,7 +21,7 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping("/{productId}")
-    public ResponseEntity<ProductResponse> getById(@PathVariable Long productId) throws Exception {
+    public ResponseEntity<Product> getById(@PathVariable Long productId) throws Exception {
         return ResponseEntity.ok(productService.findProductById(productId));
     }
 

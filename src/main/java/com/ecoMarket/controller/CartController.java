@@ -5,6 +5,8 @@ import com.ecoMarket.dtos.response.ApiResponse;
 import com.ecoMarket.dtos.response.CartItemsResponse;
 import com.ecoMarket.dtos.response.CartResponse;
 import com.ecoMarket.dtos.response.UserResponse;
+import com.ecoMarket.model.Cart;
+import com.ecoMarket.model.User;
 import com.ecoMarket.service.CartItemService;
 import com.ecoMarket.service.CartService;
 import com.ecoMarket.service.UserService;
@@ -25,10 +27,10 @@ public class CartController {
 
 
     @GetMapping("/find")
-    public ResponseEntity<CartResponse> findUserCartHandler(
+    public ResponseEntity<Cart> findUserCartHandler(
             @RequestHeader("Authorization") String jwt) throws Exception {
-        UserResponse user = userService.findUserByJwtToken(jwt);
-        CartResponse cart = cartService.findUserCart(user.getId());
+        User user = userService.findUserByJwtToken(jwt);
+        Cart cart = cartService.findUserCart(user);
         return new ResponseEntity<>(cart, HttpStatus.OK);
     }
 
@@ -36,7 +38,7 @@ public class CartController {
     public ResponseEntity<CartItemsResponse> addCartItem(
             @Valid @RequestBody CartItemsRequest cartItemsRequest,
             @RequestHeader("Authorization") String jwt) throws Exception {
-        UserResponse user = userService.findUserByJwtToken(jwt);
+        User user = userService.findUserByJwtToken(jwt);
 
         return ResponseEntity.ok(
                 cartService.addCartItem(user.getId(), cartItemsRequest)
@@ -48,7 +50,7 @@ public class CartController {
             @RequestHeader("Authorization") String jwt,
             @PathVariable Long cartItemId) throws Exception {
 
-        UserResponse user = userService.findUserByJwtToken(jwt);
+        User user = userService.findUserByJwtToken(jwt);
         cartItemService.removeCartItem(user.getId(), cartItemId);
 
         ApiResponse api = new ApiResponse();
@@ -63,7 +65,7 @@ public class CartController {
             @RequestBody CartItemsRequest request,
             @PathVariable Long cartItemId) throws Exception {
 
-        UserResponse user = userService.findUserByJwtToken(jwt);
+        User user = userService.findUserByJwtToken(jwt);
 
         return ResponseEntity.ok(cartItemService.updateCartItem(user.getId(),cartItemId, request));
 

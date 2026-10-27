@@ -19,6 +19,7 @@ public interface ProductMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", expression = "java(java.time.LocalDateTime.now())")
     @Mapping(target = "discountPercent", ignore = true)
+    @Mapping(target = "seller", source = "seller")
     Product toEntity(ProductRequest request, Seller seller, Category category);
 
     default ProductResponse toResponse(Product product) {
@@ -57,5 +58,7 @@ public interface ProductMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "discountPercent", ignore = true)
+    @Mapping(target = "seller", ignore = true)
+    @Mapping(target = "category", ignore = true)
     void updateProductFromRequest(ProductRequest request, @MappingTarget Product product);
 }

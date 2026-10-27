@@ -12,6 +12,7 @@ import com.ecoMarket.service.ProductService;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -60,9 +61,10 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductResponse updateProduct(Long productId, ProductRequest request) {
+    public ProductResponse updateProduct(Long productId, ProductRequest request, Seller seller) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
+        ensureProductBelongsToSeller(product, seller);
 
         // Оновлюємо поля через мапер
         productMapper.updateProductFromRequest(request, product);
@@ -124,9 +126,10 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public void deleteProduct(Long productId) throws Exception {
+    public void deleteProduct(Long productId, Seller seller) throws Exception {
         Product product = productRepository.findById(productId)
                 .orElseThrow(()-> new Exception("cannot find product with " +  productId));
+        ensureProductBelongsToSeller(product, seller);
         productRepository.delete(product);
 
     }
@@ -141,5 +144,13 @@ public class ProductServiceImpl implements ProductService {
         if (mrpPrice <= 0) throw new IllegalArgumentException("MRP must be > 0");
         double discount = mrpPrice - sellingPrice;
         return (int) (discount / mrpPrice * 100);
+    }
+
+    private void ensureProductBelongsToSeller(Product product, Seller seller) {
+        if (seller == null || seller.getId() == null
+                || product.getSeller() == null
+                || !seller.getId().equals(product.getSeller().getId())) {
+            throw new AccessDeniedException("Sellers can only manage their own products");
+        }
     }
 }

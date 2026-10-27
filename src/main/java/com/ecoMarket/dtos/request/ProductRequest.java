@@ -47,8 +47,5 @@ public class ProductRequest {
 
     private String categoryId;
 
-    @NotNull
-    private Long sellerId;
-
     private String sizes;
 }

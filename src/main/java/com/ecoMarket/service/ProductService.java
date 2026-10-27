@@ -14,7 +14,7 @@ public interface ProductService {
     ProductResponse createProduct(ProductRequest request, Seller seller) throws Exception;
     Product findProductById(Long productId) throws Exception;
     List<ProductResponse> searchProduct(String query);
-    ProductResponse updateProduct(Long productId, ProductRequest request);
+    ProductResponse updateProduct(Long productId, ProductRequest request, Seller seller);
     Page<ProductResponse> getAllProduct(
             String category,
             String brand,
@@ -27,6 +27,6 @@ public interface ProductService {
             String stock,
             Integer pageNumber
     );
-    void deleteProduct(Long productId) throws Exception;
+    void deleteProduct(Long productId, Seller seller) throws Exception;
     List<ProductResponse> getProductBySellerId(Long sellerId);
 }

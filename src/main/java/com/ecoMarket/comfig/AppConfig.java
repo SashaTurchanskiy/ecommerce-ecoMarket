@@ -34,6 +34,7 @@ public class AppConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/products/*/reviews").permitAll()
                         .requestMatchers("/api/auth/**", "/api/users", "/api/sellers/login", "/api/sellers/create/seller").permitAll()
+                        .requestMatchers("/api/sellers/product/**").hasRole("SELLER")
                         .requestMatchers("/api/sellers/**").authenticated()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated()

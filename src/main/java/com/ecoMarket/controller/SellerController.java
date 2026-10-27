@@ -78,9 +78,9 @@ public class SellerController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<SellerResponse> getSellerById(
+    public ResponseEntity<Seller> getSellerById(
             @PathVariable Long id) throws Exception {
-        SellerResponse seller = sellerService.getSellerById(id);
+        Seller seller = sellerService.getSellerById(id);
         return new ResponseEntity<>(seller, HttpStatus.OK);
     }
     @GetMapping("/report")
